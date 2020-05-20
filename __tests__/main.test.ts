@@ -1,31 +1,44 @@
-import { Delays, greeter } from '../src/main';
+import { getTokenFromSession } from '../src/token.helper';
 
-describe('greeter function', () => {
-  // Read more about fake timers
-  // http://facebook.github.io/jest/docs/en/timer-mocks.html#content
-  jest.useFakeTimers();
+jest.mock('../src/token.helper', () => {
+  const mockModule = {
+    getTokenFromSession: jest.fn(),
+    getStreamingToken: jest.fn(),
+  };
+  return mockModule;
+});
 
-  const name = 'John';
-  let hello: string;
-
-  // Act before assertions
-  beforeAll(async () => {
-    const p: Promise<string> = greeter(name);
-    jest.runOnlyPendingTimers();
-    hello = await p;
+describe('getTokenFromSession', () => {
+  beforeEach(() => {
+    jest.mock('../src/token.helper', () => {
+      const actualModule = jest.requireActual('../src/token.helper');
+      return { ...actualModule }; // can assert against this mock
+    });
+    jest.resetAllMocks();
   });
 
-  // Assert if setTimeout was called properly
-  it('delays the greeting by 2 seconds', () => {
-    expect(setTimeout).toHaveBeenCalledTimes(1);
-    expect(setTimeout).toHaveBeenLastCalledWith(
-      expect.any(Function),
-      Delays.Long,
+  it("should throw an error if the request doesn't contain the session", () => {
+    console.log(getTokenFromSession);
+    expect(() => getTokenFromSession({} as any)).toThrow(
+      new Error('Express session not initialize'),
     );
   });
 
-  // Assert greeter result
-  it('greets a user with `Hello, {name}` message', () => {
-    expect(hello).toBe(`Hello, ${name}`);
+  it('should return sandbox token', () => {
+    expect(getTokenFromSession({ session: {} } as any, true)).toEqual(
+      'sandbox_token',
+    );
+  });
+
+  it('should return token', () => {
+    expect(getTokenFromSession({ session: {} } as any)).toEqual('token');
   });
 });
+
+// describe('getStreamingToken', () => {
+//   // eslint-disable-next-line jest/expect-expect
+//   it('should call getTokenFromSession with sandbox if not prd', () => {
+//     getStreamingToken({} as any);
+//     expect(getTokenFromSession).toBeCalledWith({}, true);
+//   });
+// });
